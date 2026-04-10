@@ -19,52 +19,46 @@ export default function DashboardContent({ data, user }: { data: DashboardData; 
   const COLORS = ['#22c55e', '#2563eb', '#8b5cf6', '#f97316', '#ec4899', '#14b8a6'];
 
   return (
-    /* 1. Quitamos el min-h-screen y el fondo oscuro para que use el del layout */
-    <div className="w-full">
+    <div className="w-full overflow-x-hidden">
       
-      {/* 2. Ajustamos el padding superior (pt-12) para que baje el contenido respecto al Header */}
       <div className="max-w-7xl mx-auto px-4 pt-12 pb-12">
         
-        {/* ENCABEZADO */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-black tracking-tight text-white uppercase">Dashboard</h1>
-          <p className="mt-2 text-sm text-slate-400 font-medium">Resumen general de juegos, consolas y distribución por consola.</p>
+        {/* ENCABEZADO - Centrado en móvil */}
+        <div className="mb-10 text-center md:text-left">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white uppercase italic">
+            Dashboard
+          </h1>
+          <p className="mt-2 text-xs md:text-sm text-slate-400 font-medium tracking-wide uppercase opacity-70">
+            Resumen // {user.name}
+          </p>
         </div>
 
-        {/* STATS CARDS */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-10">
-          <div className="rounded-3xl bg-slate-900/50 p-6 border border-white/5 shadow-2xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold">Total games</p>
-            <p className="mt-4 text-5xl font-black text-white">{data.totalGames}</p>
-          </div>
-          <div className="rounded-3xl bg-slate-900/50 p-6 border border-white/5 shadow-2xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-cyan-400 font-bold">Total consoles</p>
-            <p className="mt-4 text-5xl font-black text-white">{data.totalConsoles}</p>
-          </div>
-          <div className="rounded-3xl bg-slate-900/50 p-6 border border-white/5 shadow-2xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-fuchsia-400 font-bold">Avg games / console</p>
-            <p className="mt-4 text-5xl font-black text-white">{data.avgGamesPerConsole}</p>
-          </div>
+        {/* STATS CARDS - 1 columna en cel, 3 en PC */}
+        <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3 mb-10">
+          <StatBox label="Total games" value={data.totalGames} color="text-cyan-400" />
+          <StatBox label="Total consoles" value={data.totalConsoles} color="text-cyan-400" />
+          <StatBox label="Avg games / console" value={data.avgGamesPerConsole} color="text-fuchsia-400" />
         </div>
 
         {/* GRAFICAS Y LISTADO */}
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.4fr_1fr]">
           <div className="space-y-8">
-            {/* Pie Chart */}
-            <div className="rounded-[2.5rem] bg-slate-900/40 p-8 border border-white/5 shadow-xl">
+            
+            {/* Pie Chart - Responsivo */}
+            <div className="rounded-[2rem] md:rounded-[2.5rem] bg-slate-900/40 p-6 md:p-8 border border-white/5 shadow-xl backdrop-blur-sm">
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-white">Juegos por consola</h2>
-                <p className="text-sm text-slate-400">Distribución actual de juegos registrados.</p>
+                <h2 className="text-lg md:text-xl font-bold text-white">Juegos por consola</h2>
+                <p className="text-xs text-slate-400 uppercase tracking-tighter">Distribución actual</p>
               </div>
-              <div className="h-[350px]">
+              <div className="h-[280px] md:h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={data.gamesPerConsole}
                       cx="50%"
                       cy="50%"
-                      innerRadius={80} /* Estilo Donut para que se vea más moderno */
-                      outerRadius={120}
+                      innerRadius="60%"
+                      outerRadius="90%"
                       paddingAngle={5}
                       dataKey="value"
                     >
@@ -73,27 +67,27 @@ export default function DashboardContent({ data, user }: { data: DashboardData; 
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px' }}
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '16px', fontSize: '12px' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Bar Chart */}
-            <div className="rounded-[2.5rem] bg-slate-900/40 p-8 border border-white/5 shadow-xl">
+            {/* Bar Chart - Responsivo */}
+            <div className="rounded-[2rem] md:rounded-[2.5rem] bg-slate-900/40 p-6 md:p-8 border border-white/5 shadow-xl backdrop-blur-sm">
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-white">Juegos por año</h2>
-                <p className="text-sm text-slate-400">Lanzamientos históricos.</p>
+                <h2 className="text-lg md:text-xl font-bold text-white">Volumen de Juegos</h2>
+                <p className="text-xs text-slate-400 uppercase tracking-tighter">Comparativa por plataforma</p>
               </div>
-              <div className="h-[350px]">
+              <div className="h-[280px] md:h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.gamesPerConsole}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                    <Tooltip cursor={{fill: '#ffffff05'}} contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px' }} />
-                    <Bar dataKey="value" fill="#8b5cf6" radius={[10, 10, 0, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip cursor={{fill: '#ffffff05'}} contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', fontSize: '12px' }} />
+                    <Bar dataKey="value" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -101,15 +95,15 @@ export default function DashboardContent({ data, user }: { data: DashboardData; 
           </div>
 
           {/* Columna Lateral de Consolas */}
-          <div className="rounded-[2.5rem] bg-slate-900/40 p-8 border border-white/5 shadow-xl h-fit">
-            <h2 className="text-xl font-bold text-white mb-6">Detalle de Consolas</h2>
-            <div className="space-y-4">
+          <div className="rounded-[2rem] md:rounded-[2.5rem] bg-slate-900/40 p-6 md:p-8 border border-white/5 shadow-xl h-fit">
+            <h2 className="text-lg font-bold text-white mb-6 uppercase tracking-widest text-center md:text-left italic">Detalle de Consolas</h2>
+            <div className="space-y-3">
               {data.gamesPerConsole.map((console) => (
-                <div key={console.name} className="rounded-2xl border border-white/5 bg-slate-950/50 p-5 transition hover:bg-slate-900/50">
+                <div key={console.name} className="rounded-xl border border-white/5 bg-slate-950/50 p-4 transition active:scale-95 md:hover:bg-slate-900/50">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="font-bold text-white">{console.name}</p>
-                    <span className="text-xs font-black text-cyan-400 bg-cyan-400/10 px-3 py-1 rounded-lg">
-                      {console.value} JUEGOS
+                    <p className="font-bold text-white text-sm">{console.name}</p>
+                    <span className="text-[10px] font-black text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded-md">
+                      {console.value} PCS
                     </span>
                   </div>
                   <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
@@ -124,6 +118,38 @@ export default function DashboardContent({ data, user }: { data: DashboardData; 
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        /* 📱 RESET PARA EVITAR ZOOM AUTOMÁTICO */
+        html {
+          font-size: 16px; 
+        }
+
+        body {
+          overflow-x: hidden;
+          -webkit-text-size-adjust: 100%;
+        }
+
+        /* Hacer que los textos sean legibles en móvil sin zoom */
+        p, h1, h2, span {
+          cursor: default;
+        }
+
+        /* Ajuste de Recharts para móviles */
+        .recharts-responsive-container {
+          min-width: 0 !important;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// Subcomponente para limpieza del código
+function StatBox({ label, value, color }: { label: string; value: number | string; color: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-900/50 p-5 border border-white/5 shadow-2xl flex flex-col justify-center items-center md:items-start transition-transform active:scale-95">
+      <p className={`text-[10px] uppercase tracking-[0.2em] font-black ${color}`}>{label}</p>
+      <p className="mt-2 text-4xl md:text-5xl font-black text-white italic">{value}</p>
     </div>
   );
 }
