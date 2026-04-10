@@ -3,13 +3,52 @@
 import { useState } from "react";
 import { createConsole } from "../app/actions/consoleActions";
 import Link from "next/link";
+import imageCompression from 'browser-image-compression'; // 1. Importamos la librería
 
 export default function NewConsole() {
   const [preview, setPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false); // Estado para el botón
 
-  const handleImage = (e: any) => {
+  const handleImage = async (e: any) => {
     const file = e.target.files[0];
-    if (file) setPreview(URL.createObjectURL(file));
+    if (!file) return;
+
+    // Mostrar preview rápido (opcional, pero ayuda a la experiencia)
+    setPreview(URL.createObjectURL(file));
+
+    try {
+      // 2. Configuración de compresión para que Vercel no lo rebote
+      const options = {
+        maxSizeMB: 0.8,          // Menos de 1MB para estar seguros
+        maxWidthOrHeight: 1280, // Calidad HD suficiente para web
+        useWebWorker: true
+      };
+
+      const compressedFile = await imageCompression(file, options);
+      
+      // Creamos un nuevo DataTransfer para reemplazar el archivo en el input
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(new File([compressedFile], file.name, { type: file.type }));
+      
+      // Reemplazamos el archivo original por el comprimido en el input real
+      const fileInput = document.querySelector('input[name="image"]') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.files = dataTransfer.files;
+      }
+
+      // Actualizar preview con la imagen comprimida
+      setPreview(URL.createObjectURL(compressedFile));
+      console.log("Imagen comprimida con éxito");
+
+    } catch (error) {
+      console.error("Error comprimiendo imagen:", error);
+    }
+  };
+
+  // Función para manejar el envío y activar el "Subiendo..."
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    setIsUploading(true);
+    // El formulario seguirá su curso normal hacia el action createConsole
   };
 
   return (
@@ -28,6 +67,7 @@ export default function NewConsole() {
       {/* 🎮 FORMULARIO */}
       <form
         action={createConsole}
+        onSubmit={handleSubmit} // Agregamos el disparador del botón
         className="relative z-10 w-full max-w-2xl p-[2px] rounded-3xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 animate-border"
       >
         <div className="bg-gray-950/90 backdrop-blur-xl rounded-3xl p-6 md:p-8 space-y-6 border border-white/10">
@@ -57,7 +97,6 @@ export default function NewConsole() {
 
             <div className="flex flex-col gap-1.5 md:col-span-2">
               <label className="text-[10px] uppercase font-bold text-cyan-400 ml-2 tracking-widest">Fecha de Lanzamiento</label>
-              {/* min-h-[50px] para que sea fácil de tocar en el cel */}
               <input type="date" name="releaseDate" required className="input-gamer min-h-[50px]" />
             </div>
 
@@ -96,9 +135,10 @@ export default function NewConsole() {
 
             <button
               type="submit"
-              className="btn-gamer bg-gradient-to-r from-cyan-400 to-blue-600 order-1 sm:order-2"
+              disabled={isUploading}
+              className={`btn-gamer bg-gradient-to-r from-cyan-400 to-blue-600 order-1 sm:order-2 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Guardar Consola
+              {isUploading ? "SUBIENDO..." : "Guardar Consola"}
             </button>
           </div>
         </div>
@@ -113,25 +153,17 @@ export default function NewConsole() {
           border: 1px solid rgba(255, 255, 255, 0.1);
           color: white;
           transition: all 0.2s ease-in-out;
-          /* EVITA EL ZOOM EN CELULARES */
           font-size: 16px;
         }
 
         @media (min-width: 768px) {
-          .input-gamer {
-            font-size: 14px;
-          }
+          .input-gamer { font-size: 14px; }
         }
 
         .input-gamer:focus {
           outline: none;
           border-color: #00ffff;
           box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
-        }
-
-        input[type="date"] {
-          display: flex;
-          align-items: center;
         }
 
         .btn-gamer {
@@ -153,11 +185,6 @@ export default function NewConsole() {
           0% { background-position: 0% 50% }
           50% { background-position: 100% 50% }
           100% { background-position: 0% 50% }
-        }
-
-        ::-webkit-calendar-picker-indicator {
-          filter: invert(1);
-          cursor: pointer;
         }
       `}</style>
     </div>
