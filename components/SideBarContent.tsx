@@ -11,17 +11,14 @@ import {
 
 export default function SideBar() {
     const pathname = usePathname();
-    const user = useUser(); // 2. Obtenemos la sesión actual
+    const user = useUser(); 
 
-    // 3. REGLA DE ORO: Si no hay usuario (logout), el sidebar desaparece.
-    // Esto evita que se vea el menú encima del formulario de login
     if (!user) return null;
 
     const navigation = [
         { name: "Dashboard", href: "/dashboard", icon: SquaresFourIcon },
         { name: "Games", href: "/games", icon: JoystickIcon },
         { name: "Consoles", href: "/consoles", icon: ComputerTowerIcon },
-        /* Usamos account-settings que es la ruta que te funcionó */
         { name: "Settings", href: "/handler/account-settings", icon: GearIcon },
     ];
 

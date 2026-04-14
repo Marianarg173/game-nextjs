@@ -144,7 +144,6 @@ export default function DashboardContent({ data, user }: { data: DashboardData; 
   );
 }
 
-// Subcomponente para limpieza del código
 function StatBox({ label, value, color }: { label: string; value: number | string; color: string }) {
   return (
     <div className="rounded-2xl bg-slate-900/50 p-5 border border-white/5 shadow-2xl flex flex-col justify-center items-center md:items-start transition-transform active:scale-95">

@@ -3,7 +3,7 @@
 import { PrismaClient } from "@/src/generated/prisma";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation"; // 🔥 IMPORTANTE
+import { redirect } from "next/navigation";
 import fs from "fs";
 import path from "path";
 
@@ -13,6 +13,16 @@ const prisma = new PrismaClient({
     }),
 });
 
+// Función auxiliar para borrar archivo (para no repetir código)
+const deleteFile = (fileName: string | undefined | null) => {
+    if (fileName) {
+        const filePath = path.join(process.cwd(), "public/imgs", fileName);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+    }
+};
+
 export async function createGame(formData: FormData) {
     const file = formData.get("cover") as File;
 
@@ -21,13 +31,10 @@ export async function createGame(formData: FormData) {
     }
 
     const fileName = `${Date.now()}-${file.name}`;
-
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
     const filePath = path.join(process.cwd(), "public/imgs", fileName);
 
-    // Crear carpeta si no existe
     if (!fs.existsSync(path.join(process.cwd(), "public/imgs"))) {
         fs.mkdirSync(path.join(process.cwd(), "public/imgs"), { recursive: true });
     }
@@ -48,44 +55,54 @@ export async function createGame(formData: FormData) {
     });
 
     revalidatePath("/games");
-
-    // 🔥 ESTA ES LA MAGIA
     redirect("/games");
 }
 
-// ELIMINAR
+// ELIMINAR (CORREGIDO)
 export async function deleteGame(id: number) {
-    await prisma.games.delete({
+    // 1. Obtener el juego para saber el nombre de la imagen antes de borrarlo
+    const game = await prisma.games.findUnique({
         where: { id: Number(id) },
     });
+
+    if (game) {
+        // 2. Borrar el archivo físico
+        deleteFile(game.cover);
+
+        // 3. Borrar de la base de datos
+        await prisma.games.delete({
+            where: { id: Number(id) },
+        });
+    }
 
     revalidatePath("/games");
 }
 
-// EDITAR
+// EDITAR (CORREGIDO)
 export async function updateGame(id: number, formData: FormData) {
     const file = formData.get("cover") as File;
+    
+    // Obtener datos actuales del juego
+    const existingGame = await prisma.games.findUnique({
+        where: { id: Number(id) },
+    });
 
     let fileName: string | undefined = undefined;
 
-    // 🔥 SI SUBEN NUEVA IMAGEN
+    // SI SUBEN NUEVA IMAGEN
     if (file && file.size > 0) {
-        const newFileName = `${Date.now()}-${file.name}`;
+        // 1. Borrar la imagen ANTERIOR para no dejar basura
+        deleteFile(existingGame?.cover);
 
+        // 2. Guardar la nueva
+        const newFileName = `${Date.now()}-${file.name}`;
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-
         const filePath = path.join(process.cwd(), "public/imgs", newFileName);
-
         fs.writeFileSync(filePath, buffer);
 
         fileName = newFileName;
     }
-
-    // 🔥 OBTENER IMAGEN ACTUAL SI NO SUBEN NADA
-    const existingGame = await prisma.games.findUnique({
-        where: { id: Number(id) },
-    });
 
     await prisma.games.update({
         where: { id: Number(id) },
@@ -97,9 +114,7 @@ export async function updateGame(id: number, formData: FormData) {
             description: formData.get("description") as string || existingGame?.description,
             console_id: Number(formData.get("console_id")),
             releaseDate: new Date(formData.get("releaseDate") as string),
-
-            // 🔥 CLAVE
-            cover: fileName ?? existingGame?.cover,
+            cover: fileName ?? existingGame?.cover, // Si no hay nueva, mantiene la anterior
         },
     });
 

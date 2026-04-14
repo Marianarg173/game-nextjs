@@ -13,6 +13,16 @@ const prisma = new PrismaClient({
     }),
 });
 
+// Función auxiliar para borrar archivos físicos
+const deleteFile = (fileName: string | undefined | null) => {
+    if (fileName) {
+        const filePath = path.join(process.cwd(), "public/imgs", fileName);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+    }
+};
+
 export async function createConsole(formData: FormData) {
     const file = formData.get("image") as File;
 
@@ -21,10 +31,8 @@ export async function createConsole(formData: FormData) {
     }
 
     const fileName = `${Date.now()}-${file.name}`;
-
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
     const filePath = path.join(process.cwd(), "public/imgs", fileName);
 
     // Crear carpeta si no existe
@@ -48,39 +56,51 @@ export async function createConsole(formData: FormData) {
     redirect("/consoles");
 }
 
-// ELIMINAR
+// ELIMINAR (CORREGIDO)
 export async function deleteConsole(id: number) {
-    await prisma.console.delete({
+    // 1. Obtener la consola para saber el nombre de la imagen
+    const existingConsole = await prisma.console.findUnique({
         where: { id: Number(id) },
     });
+
+    if (existingConsole) {
+        // 2. Borrar el archivo físico de public/imgs
+        deleteFile(existingConsole.image);
+
+        // 3. Borrar de la base de datos
+        await prisma.console.delete({
+            where: { id: Number(id) },
+        });
+    }
 
     revalidatePath("/consoles");
 }
 
-// EDITAR
+// EDITAR (CORREGIDO)
 export async function updateConsole(id: number, formData: FormData) {
     const file = formData.get("image") as File;
+    
+    // Obtener datos actuales
+    const existingConsole = await prisma.console.findUnique({
+        where: { id: Number(id) },
+    });
 
     let fileName: string | undefined = undefined;
 
     // SI SUBEN NUEVA IMAGEN
     if (file && file.size > 0) {
-        const newFileName = `${Date.now()}-${file.name}`;
+        // 1. Borrar la imagen anterior para no dejar basura
+        deleteFile(existingConsole?.image);
 
+        // 2. Guardar la nueva imagen
+        const newFileName = `${Date.now()}-${file.name}`;
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-
         const filePath = path.join(process.cwd(), "public/imgs", newFileName);
-
+        
         fs.writeFileSync(filePath, buffer);
-
         fileName = newFileName;
     }
-
-    // OBTENER IMAGEN ACTUAL SI NO SUBEN NADA
-    const existingConsole = await prisma.console.findUnique({
-        where: { id: Number(id) },
-    });
 
     await prisma.console.update({
         where: { id: Number(id) },

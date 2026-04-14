@@ -3,6 +3,8 @@ import { PrismaNeon } from "@prisma/adapter-neon";
 import Link from "next/link";
 import { deleteConsole } from "@/app/actions/consoleActions";
 import SearchBar from "./SearchBar";
+import ConsoleFilter from "./ConsoleFilter";
+import { Monitor } from "lucide-react"; 
 
 const prisma = new PrismaClient({
   adapter: new PrismaNeon({
@@ -17,7 +19,6 @@ export default async function ConsolesInfo({
 }: {
   searchParams: Promise<{ search?: string; page?: string }> | { search?: string; page?: string };
 }) {
-  // Aseguramos que los params estén disponibles (Next.js 15+ requiere await)
   const resolvedParams = await searchParams;
   const searchTerm = resolvedParams?.search || "";
   const currentPage = Number(resolvedParams?.page) || 1;
@@ -26,9 +27,13 @@ export default async function ConsolesInfo({
   const p = prisma as any;
   const consoleModel = p.consoles || p.console;
 
-  // Filtro de búsqueda por nombre
   const where = searchTerm
-    ? { name: { contains: searchTerm, mode: "insensitive" as const } }
+    ? { 
+        OR: [
+          { name: { contains: searchTerm, mode: "insensitive" as const } },
+          { manufacturer: { contains: searchTerm, mode: "insensitive" as const } }
+        ]
+      }
     : {};
 
   const [totalConsoles, consoles] = await Promise.all([
@@ -46,126 +51,124 @@ export default async function ConsolesInfo({
   const hasConsoles = consoles.length > 0;
 
   return (
-    <div className="w-full">
-      <div className="p-2 text-white">
-        <h1 className="text-4xl font-black mb-8 text-center uppercase tracking-widest text-cyan-400">
-           Consoles
-        </h1>
+    <div className="w-full p-2 text-white">
+      {/* TITLE IN ENGLISH */}
+      <h1 className="text-4xl font-black mb-8 flex items-center justify-center gap-4 uppercase tracking-widest text-cyan-400">
+        <Monitor className="h-10 w-10 text-cyan-400" strokeWidth={2.5} />
+        Consoles
+      </h1>
 
-        {/* El buscador ahora apunta correctamente a /consoles */}
-        <div className="max-w-md mx-auto mb-10">
-          <SearchBar 
-            basePath="/consoles" 
-            placeholder="Buscar consolas..." 
-          />
+      {/* FILTERS SECTION */}
+      <div className="flex flex-col md:flex-row gap-2 max-w-2xl mx-auto mb-10 items-center justify-center">
+        <div className="w-full md:flex-1">
+          <SearchBar basePath="/consoles" placeholder="Search..." />
         </div>
+        <ConsoleFilter defaultValue={searchTerm} />
+      </div>
 
-        <div className="mb-8 flex justify-between items-center max-w-7xl mx-auto">
-          <p className="text-sm text-gray-400">
-            {searchTerm ? `Resultados para "${searchTerm}": ` : "Mostrando "}
-            <span className="text-cyan-400 font-bold">{consoles.length}</span> de {totalConsoles}
-          </p>
+      <div className="mb-8 flex justify-between items-end max-w-7xl mx-auto px-4">
+        <p className="text-sm text-gray-400">
+          {searchTerm ? `Results for "${searchTerm}": ` : "Showing "}
+          <span className="text-cyan-400 font-bold">{consoles.length}</span> of {totalConsoles}
+        </p>
 
-          <Link href="/consoles/crear">
-            <button className="px-6 py-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-cyan-400 text-black font-bold hover:scale-110 transition">
-              + Nueva Consola
-            </button>
-          </Link>
-        </div>
+        <Link href="/consoles/crear">
+          <button className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-cyan-400 text-black font-bold text-sm hover:scale-105 transition shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+            + New Console
+          </button>
+        </Link>
+      </div>
 
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 max-w-7xl mx-auto">
-          {!hasConsoles ? (
-            <div className="col-span-full text-center py-24 bg-white/5 border border-white/10 rounded-3xl">
-              <p className="text-2xl text-gray-400 font-bold">No hay consolas 😢</p>
-            </div>
-          ) : (
-            consoles.map((console: any) => (
-              <div
-                key={console.id}
-                className="group relative rounded-2xl overflow-hidden bg-black/40 backdrop-blur-xl border border-white/10 transition-all duration-500 hover:scale-[1.05] hover:shadow-[0_0_40px_rgba(0,255,255,0.4)]"
-              >
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none">
-                  <div className="absolute inset-0 rounded-2xl border border-cyan-400 blur-md animate-pulse"></div>
-                </div>
+      {/* CARDS GRID */}
+      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 max-w-7xl mx-auto px-4">
+        {!hasConsoles ? (
+          <div className="col-span-full text-center py-24 bg-white/5 border border-white/10 rounded-3xl">
+            <p className="text-2xl text-gray-400 font-bold">No consoles found 😢</p>
+          </div>
+        ) : (
+          consoles.map((console: any) => (
+            <div
+              key={console.id}
+              className="group relative rounded-2xl overflow-hidden bg-black/40 backdrop-blur-xl border border-white/10 transition-all duration-500 hover:scale-[1.05] hover:shadow-[0_0_40px_rgba(0,255,255,0.4)]"
+            >
+              <div className="absolute inset-0 rounded-2xl border border-cyan-400/20 opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none"></div>
 
-                <div className="relative h-56 overflow-hidden">
-                  <img
-                    src={`/imgs/${console.image}`}
-                    alt={console.name}
-                    className="w-full h-full object-cover transition duration-700 group-hover:scale-125 group-hover:rotate-1"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                  <div className="absolute top-3 right-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-lg border border-cyan-400/30">
-                    <p className="text-cyan-400 font-bold text-sm">{console.games.length} juegos</p>
-                  </div>
-                </div>
-
-                <div className="p-5 flex flex-col">
-                  <h2 className="font-black text-lg text-white group-hover:text-cyan-400 transition uppercase">
-                    {console.name}
-                  </h2>
-                  <span className="text-xs text-gray-400 mt-1 mb-4 uppercase">
-                    {console.manufacturer}
-                  </span>
-
-                  <div className="grid grid-cols-3 gap-3 mt-auto">
-                    <Link
-                      href={`/consoles/${console.id}`}
-                      className="relative text-center text-xs font-bold py-2 rounded-xl overflow-hidden border border-cyan-400/30 group transition"
-                    >
-                      <span className="relative z-10 text-cyan-400 group-hover:text-black transition">Ver</span>
-                      <div className="absolute inset-0 bg-cyan-400 opacity-0 group-hover:opacity-100 transition"></div>
-                    </Link>
-
-                    <Link
-                      href={`/consoles/editar/${console.id}`}
-                      className="relative text-center text-xs font-bold py-2 rounded-xl overflow-hidden border border-yellow-400/30 group transition"
-                    >
-                      <span className="relative z-10 text-yellow-400 group-hover:text-black transition">Editar</span>
-                      <div className="absolute inset-0 bg-yellow-400 opacity-0 group-hover:opacity-100 transition"></div>
-                    </Link>
-
-                    <form action={async () => { "use server"; await deleteConsole(console.id); }}>
-                      <button className="relative w-full text-xs font-bold py-2 rounded-xl overflow-hidden border border-red-400/30 group transition">
-                        <span className="relative z-10 text-red-400 group-hover:text-white transition">Borrar</span>
-                        <div className="absolute inset-0 bg-red-500 opacity-0 group-hover:opacity-100 transition"></div>
-                      </button>
-                    </form>
-                  </div>
+              <div className="relative h-56 overflow-hidden">
+                <img
+                  src={`/imgs/${console.image}`}
+                  alt={console.name}
+                  className="w-full h-full object-cover transition duration-700 group-hover:scale-125"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                <div className="absolute top-3 right-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-lg border border-cyan-400/30">
+                  <p className="text-cyan-400 font-bold text-sm">{console.games.length} games</p>
                 </div>
               </div>
-            ))
-          )}
-        </div>
 
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-16 gap-3 pb-12">
-            {Array.from({ length: totalPages }, (_, i) => {
-              const pNum = i + 1;
-              const active = currentPage === pNum;
+              <div className="p-5 flex flex-col">
+                <h2 className="font-black text-lg text-white group-hover:text-cyan-400 transition uppercase tracking-tighter">
+                  {console.name}
+                </h2>
+                <span className="text-xs text-gray-400 mt-1 mb-4 uppercase font-bold tracking-widest">
+                  {console.manufacturer}
+                </span>
 
-              const query = new URLSearchParams();
-              if (searchTerm) query.set("search", searchTerm);
-              query.set("page", pNum.toString());
+                <div className="grid grid-cols-3 gap-3 mt-auto">
+                  <Link
+                    href={`/consoles/${console.id}`}
+                    className="text-center text-[10px] font-bold py-2 rounded-xl border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400 hover:text-black transition uppercase"
+                  >
+                    View
+                  </Link>
 
-              return (
-                <Link
-                  key={pNum}
-                  href={`/consoles?${query.toString()}`}
-                  scroll={false}
-                  className={`w-12 h-12 flex items-center justify-center rounded-xl font-bold transition-all ${
-                    active
-                      ? "bg-gradient-to-r from-cyan-400 to-blue-600 text-white scale-110"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10"
-                  }`}
-                >
-                  {pNum}
-                </Link>
-              );
-            })}
-          </div>
+                  <Link
+                    href={`/consoles/editar/${console.id}`}
+                    className="text-center text-[10px] font-bold py-2 rounded-xl border border-yellow-400/30 text-yellow-400 hover:bg-yellow-400 hover:text-black transition uppercase"
+                  >
+                    Edit
+                  </Link>
+
+                  <form action={async () => {
+                    "use server";
+                    await deleteConsole(console.id);
+                  }}>
+                    <button className="w-full text-[10px] font-bold py-2 rounded-xl border border-red-400/30 text-red-400 hover:bg-red-500 hover:text-white transition uppercase">
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-16 gap-3 pb-12">
+          {Array.from({ length: totalPages }, (_, i) => {
+            const pNum = i + 1;
+            const active = currentPage === pNum;
+            const query = new URLSearchParams();
+            if (searchTerm) query.set("search", searchTerm);
+            query.set("page", pNum.toString());
+
+            return (
+              <Link
+                key={pNum}
+                href={`/consoles?${query.toString()}`}
+                className={`w-12 h-12 flex items-center justify-center rounded-xl font-bold transition-all ${
+                  active
+                    ? "bg-gradient-to-r from-cyan-400 to-blue-600 text-white scale-110 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                    : "bg-white/5 text-gray-400 hover:bg-white/10"
+                }`}
+              >
+                {pNum}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -13,13 +13,12 @@ export default function SearchBar({
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Inicializamos el estado una sola vez con el valor de la URL
+  
   const [search, setSearch] = useState(searchParams.get("search") || "");
   
-  // Usamos una referencia para saber si es el primer render y evitar ejecuciones innecesarias
+ 
   const isInitialRender = useRef(true);
 
-  // 1. Sincroniza el input solo si el usuario usa las flechas de atrás/adelante del navegador
   useEffect(() => {
     const currentSearch = searchParams.get("search") || "";
     if (search !== currentSearch) {
@@ -27,9 +26,8 @@ export default function SearchBar({
     }
   }, [searchParams]);
 
-  // 2. Debounce corregido
   useEffect(() => {
-    // Evitamos que se ejecute al cargar la página por primera vez
+    
     if (isInitialRender.current) {
       isInitialRender.current = false;
       return;
@@ -39,7 +37,7 @@ export default function SearchBar({
       const params = new URLSearchParams(searchParams.toString());
       const currentSearchInUrl = params.get("search") || "";
 
-      // Solo actuamos si el texto del input es diferente al de la URL actual
+      
       if (search !== currentSearchInUrl) {
         if (search) {
           params.set("search", search);
@@ -47,7 +45,7 @@ export default function SearchBar({
           params.delete("search");
         }
 
-        // SOLO reseteamos la página si la búsqueda cambió de verdad
+       
         params.set("page", "1");
 
         router.push(`${basePath}?${params.toString()}`);
